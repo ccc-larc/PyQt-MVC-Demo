@@ -2,6 +2,8 @@ import random
 import sys
 import time
 
+from PyQt4 import QtGui, QtCore
+
 
 class Server(object):
     def __init__(self, name):
@@ -28,6 +30,29 @@ class ServerHolder(object):
             serv.update()
 
 
+class ServerModel(QtCore.QAbstractListModel):
+    def __init__(self, servers, parent=None):
+        super(ServerModel, self).__init__(parent)
+        self._servers = servers
+    
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._servers)
+    
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return QtCore.QVariant()
+        
+        row = index.row()
+        server = self._servers[row]
+        if role == QtCore.Qt.DisplayRole:
+            return '%s: %s%%' % (server.name, int(server.load * 100.0))
+        
+        elif role == QtCore.Qt.UserRole:
+            return server
+        
+        return QtCore.QVariant()
+    
+
 def console_display(servers):
     serv_list = []
     for serv in servers:
@@ -45,12 +70,16 @@ def main():
     server_holder.add_server('B')
     server_holder.add_server('C')
     
-    while True:
-        server_holder.update()
-        console_display(server_holder.servers)
-        time.sleep(1)
+    app = QtGui.QApplication(sys.argv)
+    win = QtGui.QSplitter()
     
-    return 0
+    model = ServerModel(server_holder.servers)
+    view1 = QtGui.QListView()
+    view1.setModel(model)
+    win.addWidget(view1)
+    
+    win.show()
+    return app.exec_()
 
 
 if __name__ == '__main__':
