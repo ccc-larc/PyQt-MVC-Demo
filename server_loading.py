@@ -17,18 +17,6 @@ class Server(object):
         self.load = sorted([0, new_load, 100])[1]
 
 
-class ServerHolder(object):
-    def __init__(self):
-        self.servers = []
-    
-    def add_server(self, name):
-        self.servers.append(Server(name))
-    
-    def update(self):
-        for serv in self.servers:
-            serv.update()
-
-
 class ServerModel(QtCore.QAbstractListModel):
     def __init__(self, servers, parent=None):
         super(ServerModel, self).__init__(parent)
@@ -103,24 +91,20 @@ class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
 def console_display(servers):
     serv_list = []
     for serv in servers:
-        serv_load = '%3d%%' % serv.load
         serv_active = ('*' if serv.active else ' ')
-        serv_list.append('[%s%s %s]' % (serv.name, serv_active, serv_load))
+        serv_list.append('[%s%s %3d%%]' % (serv.name, serv_active, serv.load))
     print('--'.join(serv_list))
 
 
 def main():
     print('Python %s' % sys.version)
     
-    server_holder = ServerHolder()
-    server_holder.add_server('A')
-    server_holder.add_server('B')
-    server_holder.add_server('C')
+    servers = [Server('A'), Server('B'), Server('C')]
     
     app = QtGui.QApplication(sys.argv)
     win = QtGui.QSplitter()
     
-    model = ServerModel(server_holder.servers)
+    model = ServerModel(servers)
     view1 = QtGui.QListView()
     view1.setModel(model)
     win.addWidget(view1)
@@ -163,8 +147,9 @@ def main():
     win.show()
     
     def _update_servers():
-        server_holder.update()
-        console_display(server_holder.servers)
+        for serv in servers:
+            serv.update()
+        console_display(servers)
         model.reset()
         
     timer = QtCore.QTimer()
