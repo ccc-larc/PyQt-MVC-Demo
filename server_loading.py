@@ -121,6 +121,17 @@ def main():
     win.addWidget(view3)
     
     win.show()
+    
+    def _update_servers():
+        server_holder.update()
+        console_display(server_holder.servers)
+        model.reset()
+        
+    timer = QtCore.QTimer()
+    timer.setInterval(250)
+    timer.timeout.connect(_update_servers)
+    timer.start(250)
+    
     return app.exec_()
 
 
