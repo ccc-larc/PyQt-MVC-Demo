@@ -8,14 +8,14 @@ from PyQt4 import QtGui, QtCore
 class Server(object):
     def __init__(self, name):
         self.name = name
-        self.load = random.uniform(0.0, 1.0)
+        self.load = random.randint(0, 100)
         self.active = True
     
     def update(self):
         if not self.active:
             return
-        new_load = self.load + random.uniform(-0.1, 0.1)
-        self.load = sorted([0.0, new_load, 1.0])[1]
+        new_load = self.load + random.randint(-10, 10)
+        self.load = sorted([0, new_load, 100])[1]
 
 
 class ServerHolder(object):
@@ -45,7 +45,7 @@ class ServerModel(QtCore.QAbstractListModel):
         row = index.row()
         server = self._servers[row]
         if role == QtCore.Qt.DisplayRole:
-            return '%s: %s%%' % (server.name, int(server.load * 100.0))
+            return '%s: %s%%' % (server.name, server.load)
         
         elif role == QtCore.Qt.UserRole:
             return server
@@ -59,16 +59,15 @@ class ServerProgressBarDelegate(QtGui.QStyledItemDelegate):
         assert isinstance(option, QtGui.QStyleOptionViewItem)
         
         server = index.data(QtCore.Qt.UserRole).toPyObject()
-        percent = int(server.load * 100.0)
         
         opts = QtGui.QStyleOptionProgressBarV2()
         opts.rect = option.rect
         opts.minimum = 0
         opts.maximum = 100
-        opts.text = '%s: %d%%' % (server.name, percent)
+        opts.text = '%s: %d%%' % (server.name, server.load)
         opts.textAlignment = QtCore.Qt.AlignCenter
         opts.textVisible = True
-        opts.progress = percent
+        opts.progress = server.load
         QtGui.QApplication.style().drawControl(QtGui.QStyle.CE_ProgressBar, opts, painter)
 
 
@@ -84,7 +83,7 @@ class ServerLoadingSortProxyModel(QtGui.QSortFilterProxyModel):
 class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
     def __init__(self, parent=None):
         super(ServerLoadingFilterProxyModel, self).__init__(parent)
-        self._low_bound = 0.5
+        self._low_bound = 50
         self.setDynamicSortFilter(True)
     
     def filterAcceptsRow(self, source_row, source_parent):
@@ -97,7 +96,7 @@ class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
         return self._low_bound
     
     def setLowBound(self, low_bound):
-        assert 0.0 <= low_bound <= 100.0
+        assert 0 <= low_bound <= 100
         self._low_bound = low_bound
         self.filterChanged()
 
@@ -105,7 +104,7 @@ class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
 def console_display(servers):
     serv_list = []
     for serv in servers:
-        serv_load = '%3d%%' % int(serv.load * 100.0)
+        serv_load = '%3d%%' % serv.load
         serv_active = ('*' if serv.active else ' ')
         serv_list.append('[%s%s %s]' % (serv.name, serv_active, serv_load))
     print('--'.join(serv_list))
@@ -151,8 +150,8 @@ def main():
     slider.setRange(0, 100)
     slider.setTickInterval(10)
     slider.setTickPosition(QtGui.QSlider.TicksAbove)
-    slider.setValue(int(load_filter_proxy_model.lowBound() * 100.0))
-    slider.valueChanged.connect(lambda int_value: load_filter_proxy_model.setLowBound(float(int_value) / 100.0))
+    slider.setValue(load_filter_proxy_model.lowBound())
+    slider.valueChanged.connect(load_filter_proxy_model.setLowBound)
     
     layout4 = QtGui.QVBoxLayout()
     layout4.addWidget(view4)
