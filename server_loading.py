@@ -72,6 +72,15 @@ class ServerProgressBarDelegate(QtGui.QStyledItemDelegate):
         QtGui.QApplication.style().drawControl(QtGui.QStyle.CE_ProgressBar, opts, painter)
 
 
+class ServerLoadingSortProxyModel(QtGui.QSortFilterProxyModel):
+    def lessThan(self, left, right):
+        assert isinstance(left, QtCore.QModelIndex)
+        assert isinstance(right, QtCore.QModelIndex)
+        left_server = left.data(QtCore.Qt.UserRole).toPyObject()
+        right_server = right.data(QtCore.Qt.UserRole).toPyObject()
+        return (left_server.load < right_server.load)
+
+
 def console_display(servers):
     serv_list = []
     for serv in servers:
@@ -102,6 +111,14 @@ def main():
     view2.setModel(model)
     view2.setItemDelegate(delegate)
     win.addWidget(view2)
+    
+    load_sort_proxy_model = ServerLoadingSortProxyModel()
+    load_sort_proxy_model.setSourceModel(model)
+    load_sort_proxy_model.sort(0, QtCore.Qt.DescendingOrder)
+    view3 = QtGui.QListView()
+    view3.setModel(load_sort_proxy_model)
+    view3.setItemDelegate(delegate)
+    win.addWidget(view3)
     
     win.show()
     return app.exec_()
