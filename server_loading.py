@@ -81,6 +81,27 @@ class ServerLoadingSortProxyModel(QtGui.QSortFilterProxyModel):
         return (left_server.load < right_server.load)
 
 
+class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
+    def __init__(self, parent=None):
+        super(ServerLoadingFilterProxyModel, self).__init__(parent)
+        self._low_bound = 0.5
+        self.setDynamicSortFilter(True)
+    
+    def filterAcceptsRow(self, source_row, source_parent):
+        assert isinstance(source_row, int)
+        assert isinstance(source_parent, QtCore.QModelIndex)
+        server = self.sourceModel().index(source_row, 0).data(QtCore.Qt.UserRole).toPyObject()
+        return (server.load >= self._low_bound)
+    
+    def lowBound(self):
+        return self._low_bound
+    
+    def setLowBound(self, low_bound):
+        assert 0.0 <= low_bound <= 100.0
+        self._low_bound = low_bound
+        self.filterChanged()
+
+
 def console_display(servers):
     serv_list = []
     for serv in servers:
@@ -119,6 +140,27 @@ def main():
     view3.setModel(load_sort_proxy_model)
     view3.setItemDelegate(delegate)
     win.addWidget(view3)
+    
+    load_filter_proxy_model = ServerLoadingFilterProxyModel()
+    load_filter_proxy_model.setSourceModel(load_sort_proxy_model)
+    view4 = QtGui.QListView()
+    view4.setModel(load_filter_proxy_model)
+    view4.setItemDelegate(delegate)
+    
+    slider = QtGui.QSlider(QtCore.Qt.Horizontal)
+    slider.setRange(0, 100)
+    slider.setTickInterval(10)
+    slider.setTickPosition(QtGui.QSlider.TicksAbove)
+    slider.setValue(int(load_filter_proxy_model.lowBound() * 100.0))
+    slider.valueChanged.connect(lambda int_value: load_filter_proxy_model.setLowBound(float(int_value) / 100.0))
+    
+    layout4 = QtGui.QVBoxLayout()
+    layout4.addWidget(view4)
+    layout4.addWidget(slider)
+    
+    widget4 = QtGui.QWidget()
+    widget4.setLayout(layout4)
+    win.addWidget(widget4)
     
     win.show()
     
