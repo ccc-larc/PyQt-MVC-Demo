@@ -38,6 +38,11 @@ class ServerModel(QtCore.QAbstractListModel):
             return server
         
         return QtCore.QVariant()
+    
+    def refreshLoading(self):
+        for row in range(self.rowCount()):
+            index = self.index(row)
+            self.dataChanged.emit(index, index)
 
 
 class ServerProgressBarDelegate(QtGui.QStyledItemDelegate):
@@ -117,6 +122,7 @@ def main():
     
     load_sort_proxy_model = ServerLoadingSortProxyModel()
     load_sort_proxy_model.setSourceModel(model)
+    load_sort_proxy_model.setDynamicSortFilter(True)
     load_sort_proxy_model.sort(0, QtCore.Qt.DescendingOrder)
     view3 = QtGui.QListView()
     view3.setModel(load_sort_proxy_model)
@@ -150,7 +156,7 @@ def main():
         for serv in servers:
             serv.update()
         console_display(servers)
-        model.reset()
+        model.refreshLoading()
         
     timer = QtCore.QTimer()
     timer.setInterval(250)
