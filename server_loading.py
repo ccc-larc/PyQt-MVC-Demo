@@ -1,6 +1,5 @@
 import random
 import sys
-import time
 
 from PyQt4 import QtGui, QtCore
 
