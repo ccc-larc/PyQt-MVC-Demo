@@ -17,6 +17,9 @@ class Server(object):
         self.load = sorted([0, new_load, 100])[1]
 
 
+SERVER_NAME_ROLE = QtCore.Qt.UserRole
+SERVER_LOAD_ROLE = QtCore.Qt.UserRole + 1
+
 class ServerModel(QtCore.QAbstractListModel):
     def __init__(self, servers, parent=None):
         super(ServerModel, self).__init__(parent)
@@ -34,8 +37,11 @@ class ServerModel(QtCore.QAbstractListModel):
         if role == QtCore.Qt.DisplayRole:
             return '%s: %s%%' % (server.name, server.load)
         
-        elif role == QtCore.Qt.UserRole:
-            return server
+        elif role == SERVER_NAME_ROLE:
+            return server.name
+        
+        elif role == SERVER_LOAD_ROLE:
+            return server.load
         
         return QtCore.QVariant()
     
@@ -50,16 +56,17 @@ class ServerProgressBarDelegate(QtGui.QStyledItemDelegate):
         assert isinstance(painter, QtGui.QPainter)
         assert isinstance(option, QtGui.QStyleOptionViewItem)
         
-        server = index.data(QtCore.Qt.UserRole).toPyObject()
+        server_name = index.data(SERVER_NAME_ROLE).toPyObject()
+        server_load = index.data(SERVER_LOAD_ROLE).toPyObject()
         
         opts = QtGui.QStyleOptionProgressBarV2()
         opts.rect = option.rect
         opts.minimum = 0
         opts.maximum = 100
-        opts.text = '%s: %d%%' % (server.name, server.load)
+        opts.text = '%s: %d%%' % (server_name, server_load)
         opts.textAlignment = QtCore.Qt.AlignCenter
         opts.textVisible = True
-        opts.progress = server.load
+        opts.progress = server_load
         QtGui.QApplication.style().drawControl(QtGui.QStyle.CE_ProgressBar, opts, painter)
 
 
@@ -67,9 +74,9 @@ class ServerLoadingSortProxyModel(QtGui.QSortFilterProxyModel):
     def lessThan(self, left, right):
         assert isinstance(left, QtCore.QModelIndex)
         assert isinstance(right, QtCore.QModelIndex)
-        left_server = left.data(QtCore.Qt.UserRole).toPyObject()
-        right_server = right.data(QtCore.Qt.UserRole).toPyObject()
-        return (left_server.load < right_server.load)
+        left_load = left.data(SERVER_LOAD_ROLE).toPyObject()
+        right_load = right.data(SERVER_LOAD_ROLE).toPyObject()
+        return (left_load < right_load)
 
 
 class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
@@ -81,8 +88,9 @@ class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
     def filterAcceptsRow(self, source_row, source_parent):
         assert isinstance(source_row, int)
         assert isinstance(source_parent, QtCore.QModelIndex)
-        server = self.sourceModel().index(source_row, 0).data(QtCore.Qt.UserRole).toPyObject()
-        return (server.load >= self._low_bound)
+        source_index = self.sourceModel().index(source_row, 0)
+        server_load = source_index.data(SERVER_LOAD_ROLE).toPyObject()
+        return (server_load >= self._low_bound)
     
     def lowBound(self):
         return self._low_bound
