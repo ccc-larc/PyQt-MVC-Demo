@@ -51,7 +51,26 @@ class ServerModel(QtCore.QAbstractListModel):
             return server
         
         return QtCore.QVariant()
-    
+
+
+class ServerProgressBarDelegate(QtGui.QStyledItemDelegate):
+    def paint(self, painter, option, index):
+        assert isinstance(painter, QtGui.QPainter)
+        assert isinstance(option, QtGui.QStyleOptionViewItem)
+        
+        server = index.data(QtCore.Qt.UserRole).toPyObject()
+        percent = int(server.load * 100.0)
+        
+        opts = QtGui.QStyleOptionProgressBarV2()
+        opts.rect = option.rect
+        opts.minimum = 0
+        opts.maximum = 100
+        opts.text = '%s: %d%%' % (server.name, percent)
+        opts.textAlignment = QtCore.Qt.AlignCenter
+        opts.textVisible = True
+        opts.progress = percent
+        QtGui.QApplication.style().drawControl(QtGui.QStyle.CE_ProgressBar, opts, painter)
+
 
 def console_display(servers):
     serv_list = []
@@ -77,6 +96,12 @@ def main():
     view1 = QtGui.QListView()
     view1.setModel(model)
     win.addWidget(view1)
+    
+    delegate = ServerProgressBarDelegate()
+    view2 = QtGui.QListView()
+    view2.setModel(model)
+    view2.setItemDelegate(delegate)
+    win.addWidget(view2)
     
     win.show()
     return app.exec_()
