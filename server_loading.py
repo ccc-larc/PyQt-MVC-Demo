@@ -1,112 +1,12 @@
-import random
 import sys
 
 from PyQt4 import QtGui, QtCore
 
-
-class Server(object):
-    def __init__(self, name):
-        self.name = name
-        self.load = random.randint(0, 100)
-        self.active = True
-    
-    def update(self):
-        if not self.active:
-            return
-        new_load = self.load + random.randint(-10, 10)
-        self.load = sorted([0, new_load, 100])[1]
-
-
-SERVER_NAME_ROLE = QtCore.Qt.UserRole
-SERVER_LOAD_ROLE = QtCore.Qt.UserRole + 1
-
-class ServerModel(QtCore.QAbstractListModel):
-    def __init__(self, servers, parent=None):
-        super(ServerModel, self).__init__(parent)
-        self._servers = servers
-    
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._servers)
-    
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid():
-            return QtCore.QVariant()
-        
-        row = index.row()
-        server = self._servers[row]
-        if role == QtCore.Qt.DisplayRole:
-            return '%s: %s%%' % (server.name, server.load)
-        
-        elif role == SERVER_NAME_ROLE:
-            return server.name
-        
-        elif role == SERVER_LOAD_ROLE:
-            return server.load
-        
-        return QtCore.QVariant()
-    
-    def refreshLoading(self):
-        for row in range(self.rowCount()):
-            index = self.index(row)
-            self.dataChanged.emit(index, index)
-
-
-class ServerProgressBarDelegate(QtGui.QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        assert isinstance(painter, QtGui.QPainter)
-        assert isinstance(option, QtGui.QStyleOptionViewItem)
-        
-        server_name = index.data(SERVER_NAME_ROLE).toPyObject()
-        server_load = index.data(SERVER_LOAD_ROLE).toPyObject()
-        
-        opts = QtGui.QStyleOptionProgressBarV2()
-        opts.rect = option.rect
-        opts.minimum = 0
-        opts.maximum = 100
-        opts.text = '%s: %d%%' % (server_name, server_load)
-        opts.textAlignment = QtCore.Qt.AlignCenter
-        opts.textVisible = True
-        opts.progress = server_load
-        QtGui.QApplication.style().drawControl(QtGui.QStyle.CE_ProgressBar, opts, painter)
-
-
-class ServerLoadingSortProxyModel(QtGui.QSortFilterProxyModel):
-    def lessThan(self, left, right):
-        assert isinstance(left, QtCore.QModelIndex)
-        assert isinstance(right, QtCore.QModelIndex)
-        left_load = left.data(SERVER_LOAD_ROLE).toPyObject()
-        right_load = right.data(SERVER_LOAD_ROLE).toPyObject()
-        return (left_load < right_load)
-
-
-class ServerLoadingFilterProxyModel(QtGui.QSortFilterProxyModel):
-    def __init__(self, parent=None):
-        super(ServerLoadingFilterProxyModel, self).__init__(parent)
-        self._low_bound = 50
-        self.setDynamicSortFilter(True)
-    
-    def filterAcceptsRow(self, source_row, source_parent):
-        assert isinstance(source_row, int)
-        assert isinstance(source_parent, QtCore.QModelIndex)
-        source_index = self.sourceModel().index(source_row, 0)
-        server_load = source_index.data(SERVER_LOAD_ROLE).toPyObject()
-        return (server_load >= self._low_bound)
-    
-    def lowBound(self):
-        return self._low_bound
-    
-    def setLowBound(self, low_bound):
-        assert 0 <= low_bound <= 100
-        self._low_bound = low_bound
-        self.filterChanged()
-
-
-def console_display(servers):
-    serv_list = []
-    for serv in servers:
-        serv_active = ('*' if serv.active else ' ')
-        serv_list.append('[%s%s %3d%%]' % (serv.name, serv_active, serv.load))
-    print('--'.join(serv_list))
+from _0_server import Server, console_display
+from _1_model import ServerModel
+from _2_progress_bar_delegate import ServerProgressBarDelegate
+from _3_sort_proxy_model import ServerLoadingSortProxyModel
+from _4_filter_proxy_model import ServerLoadingFilterProxyModel
 
 
 def main():
